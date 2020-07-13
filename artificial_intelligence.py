@@ -64,12 +64,12 @@ def simulate(input):
 if __name__ == '__main__':
     np.random.seed(1)  # TODO
 
-    output_possibilities = np.array([0, 1])  # TODO
+    output_possibilities = np.array([0, 1, 10, 11])  # TODO
 
-    training_set_inputs = inputs[np.arange(len(inputs)) < 42]  # TODO
-    training_set_outputs = outputs[np.arange(len(outputs)) < 42]  # TODO
+    training_set_inputs = inputs[np.arange(len(inputs)) > 5]  # TODO
+    training_set_outputs = outputs[np.arange(len(outputs)) > 5]  # TODO
 
-    layers = {1: [6, 10], 2: [10, 10], 3: [10, 2]}  # TODO
+    layers = {1: [5, 20], 2: [20, 20], 3: [20, 4]}  # TODO
     layer_weights = {}
     layer_outputs = {}
     layer_error = {}
@@ -81,7 +81,15 @@ if __name__ == '__main__':
 
     train(10000)  # TODO
 
-    test = inputs[42]  # TODO
+    error_count = 0
+    times_simulated = 0
 
-    print('Output: ' + str(simulate(test)[0]))
-    print('Confidence: ' + str(simulate(test)[1]))
+    for i in inputs:
+        if not any((training_set_inputs[:] == i).all(1)):
+            times_simulated += 1
+            simulate(i)
+            sim_out = simulate(i)[0]
+            sim_con = simulate(i)[1]
+            if sim_out != outputs[inputs.tolist().index(i.tolist())]:
+                error_count += 1
+    print('Errors: ' + str(error_count) + '  |  Accuracy: ' + '{:.2f}'.format(1 - (error_count / times_simulated)))
