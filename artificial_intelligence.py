@@ -1,5 +1,6 @@
 import numpy as np
-from simulation import inputs, outputs
+# from logic_simulation import logicsim_inputs, logicsim_outputs
+from image_converter import imgconvert_inputs, imgconvert_outputs
 
 
 def neuron_layer(number_of_inputs_per_neuron, number_of_neurons):
@@ -64,12 +65,12 @@ def simulate(input):
 if __name__ == '__main__':
     np.random.seed(1)  # TODO
 
-    output_possibilities = np.array([0, 1, 10, 11])  # TODO
+    output_possibilities = np.array([-1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9])  # TODO
 
-    training_set_inputs = inputs[np.arange(len(inputs)) > 5]  # TODO
-    training_set_outputs = outputs[np.arange(len(outputs)) > 5]  # TODO
+    training_set_inputs = imgconvert_inputs[np.arange(len(imgconvert_inputs)) > 0]  # TODO
+    training_set_outputs = imgconvert_outputs[np.arange(len(imgconvert_outputs)) > 0]  # TODO
 
-    layers = {1: [5, 20], 2: [20, 20], 3: [20, 4]}  # TODO
+    layers = {1: [1600, 16], 2: [16, 16], 3: [16, 16], 4: [16, 11]}  # TODO
     layer_weights = {}
     layer_outputs = {}
     layer_error = {}
@@ -84,12 +85,13 @@ if __name__ == '__main__':
     error_count = 0
     times_simulated = 0
 
-    for i in inputs:
+    for i in imgconvert_inputs:
         if not any((training_set_inputs[:] == i).all(1)):
             times_simulated += 1
             simulate(i)
             sim_out = simulate(i)[0]
             sim_con = simulate(i)[1]
-            if sim_out != outputs[inputs.tolist().index(i.tolist())]:
+            if sim_out != imgconvert_outputs[imgconvert_inputs.tolist().index(i.tolist())]:
+                print(sim_out, imgconvert_outputs[imgconvert_inputs.tolist().index(i.tolist())])
                 error_count += 1
     print('Errors: ' + str(error_count) + '  |  Accuracy: ' + '{:.2f}'.format(1 - (error_count / times_simulated)))
