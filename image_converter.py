@@ -7,32 +7,50 @@ def check(test, array):
     return test in array
 
 
-def convert(image, img_depict):
-    img = Image.open(image).convert('LA')
-    img.save('greyscale.png')
+def convert(folder, iter):
+    for file in os.listdir(folder + '/' + str(iter)):
+        img_depict = float(file[0])
+        print([file], [img_depict])
 
-    img_g = Image.open('greyscale.png', 'r')
-    pix_val = list(img_g.getdata())
-    pix_val_flat = np.array([], dtype='int64')
+        img = Image.open(folder + '/' + str(iter) + '/' + file).convert('LA')
+        img.save('greyscale.png')
 
-    for i in pix_val:
-        pix_val_flat = np.append(pix_val_flat, int((i[0] / 255) * -1 + 1))
+        img_g = Image.open('greyscale.png', 'r')
+        pix_val = list(img_g.getdata())
+        pix_val_flat = np.array([], dtype='float')
 
-    if (not os.path.isfile('./img_save_in.npy')) and (not os.path.isfile('./img_save_out.npy')):
-        inputs = np.array([pix_val_flat])
-        outputs = np.array([[img_depict]], dtype='int64')
+        for i in pix_val:
+            pix_val_flat = np.append(pix_val_flat, float((i[0] / 255) * -1 + 1))
 
-    else:
-        inputs = np.load('img_save_in.npy')
-        outputs = np.load('img_save_out.npy')
-        if not check(pix_val_flat.tolist(), inputs.tolist()):
-            inputs = np.append(inputs, [pix_val_flat], axis=0)
-            outputs = np.append(outputs, [[img_depict]], axis=0)
+        if (not os.path.isfile('./img_save_in_' + str(iter) + '.npy')) and (not os.path.isfile('./img_save_out_' + str(iter) + '.npy')):
+            inputs = np.array([pix_val_flat])
+            outputs = np.array([[img_depict]])
 
-    np.save('img_save_in', inputs)
-    np.save('img_save_out', outputs)
+        else:
+            inputs = np.load('./img_save_in_' + str(iter) + '.npy')
+            outputs = np.load('./img_save_out_' + str(iter) + '.npy')
+            if not check(pix_val_flat.tolist(), inputs.tolist()):
+                inputs = np.append(inputs, [pix_val_flat], axis=0)
+                outputs = np.append(outputs, [[img_depict]], axis=0)
 
-    return inputs, outputs
+        np.save('img_save_in_' + str(iter), inputs)
+        np.save('img_save_out_' + str(iter), outputs)
 
 
-imgconvert_inputs, imgconvert_outputs = convert('image.png', 3)  # TODO
+def compress(folder, output):
+    for file in os.listdir(folder):
+        np.save(output, np.append(np.load(output + '.npy'), np.load(folder + '/' + file), axis=0))
+    return file
+
+
+# ============================================================================================
+
+# for i in range(0, 1):  # TODO
+#     convert('./mnist/testSample', i)  # TODO
+
+# print(compress('./numpy_saves/in', 'img_save_in_0'))  # TODO
+# print(compress('./numpy_saves/out', 'img_save_out_0'))  # TODO
+
+imgconvert_inputs = np.load('img_save_in_0.npy')  # TODO
+imgconvert_outputs = np.load('img_save_out_0.npy')  # TODO
+print(imgconvert_inputs.shape, imgconvert_outputs.shape)

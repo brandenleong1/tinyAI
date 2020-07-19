@@ -33,10 +33,12 @@ def function(i1, i2, i3, i4, i5):  # TODO
     return ((add_nand(add_nand(i1, i3), add_nand(i2, add_nand(i3, i4)))) * 10) + (add_nand(add_nand(i2, add_nand(i3, i4)), add_nand(i5, add_nand(i3, i4))))  # TODO
 
 
+# ============================================================================================
+
 input_length = 5  # TODO
 
-logicsim_inputs = np.empty((2 ** input_length, input_length), dtype='int64')
-logicsim_outputs = np.empty((2 ** input_length, 1), dtype='int64')
+logicsim_inputs = np.empty((2 ** input_length, input_length), dtype='float')
+logicsim_outputs = np.empty((2 ** input_length, 1), dtype='float')
 
 print('==================== SIMULATION ====================')
 for i in range(2 ** input_length):

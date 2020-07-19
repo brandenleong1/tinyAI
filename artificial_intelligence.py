@@ -17,8 +17,6 @@ def sigmoid_derivative(x):
 
 def train(number_of_training_iterations):
     for iteration in range(number_of_training_iterations):
-        if iteration % 2000 == 0:
-            print('Waiting...  (' + str(iteration) + '/' + str(number_of_training_iterations) + ')')
         for i in range(len(layers)):
             layer_outputs[i + 1] = think(i + 1, training_set_inputs)
 
@@ -42,6 +40,8 @@ def train(number_of_training_iterations):
                 layer_adjustment[i + 1] = layer_outputs[i].T.dot(layer_delta[i + 1])
 
             layer_weights[i + 1] += layer_adjustment[i + 1]
+        if iteration % 1 == 0:
+                    print('Waiting...  (' + str(iteration + 1) + '/' + str(number_of_training_iterations) + ')')
 
 
 def think(x, inputs):
@@ -65,12 +65,12 @@ def simulate(input):
 if __name__ == '__main__':
     np.random.seed(1)  # TODO
 
-    output_possibilities = np.array([-1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9])  # TODO
+    output_possibilities = np.array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])  # TODO
 
-    training_set_inputs = imgconvert_inputs[np.arange(len(imgconvert_inputs)) > 0]  # TODO
-    training_set_outputs = imgconvert_outputs[np.arange(len(imgconvert_outputs)) > 0]  # TODO
+    training_set_inputs = imgconvert_inputs[np.arange(len(imgconvert_inputs)) < 42000]  # TODO
+    training_set_outputs = imgconvert_outputs[np.arange(len(imgconvert_outputs)) < 42000]  # TODO
 
-    layers = {1: [1600, 16], 2: [16, 16], 3: [16, 16], 4: [16, 11]}  # TODO
+    layers = {1: [784, 16], 2: [16, 16], 3: [16, 16], 4: [16, 10]}  # TODO
     layer_weights = {}
     layer_outputs = {}
     layer_error = {}
@@ -88,10 +88,11 @@ if __name__ == '__main__':
     for i in imgconvert_inputs:
         if not any((training_set_inputs[:] == i).all(1)):
             times_simulated += 1
-            simulate(i)
-            sim_out = simulate(i)[0]
-            sim_con = simulate(i)[1]
+            sim_out, sim_confidence = simulate(i)
             if sim_out != imgconvert_outputs[imgconvert_inputs.tolist().index(i.tolist())]:
-                print(sim_out, imgconvert_outputs[imgconvert_inputs.tolist().index(i.tolist())])
+                print(sim_out, sim_confidence, imgconvert_outputs[imgconvert_inputs.tolist().index(i.tolist())])
                 error_count += 1
+                print('Error count: ' + str(error_count))
+            else:
+                print('Success! ' + str(sim_out))
     print('Errors: ' + str(error_count) + '  |  Accuracy: ' + '{:.2f}'.format(1 - (error_count / times_simulated)))
