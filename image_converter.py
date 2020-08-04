@@ -7,12 +7,12 @@ def check(test, array):
     return test in array
 
 
-def convert(folder, iter):
-    for file in os.listdir(folder + '/' + str(iter)):
-        img_depict = float(file[0])
+def convert(folder, itercount):
+    for file in os.listdir(folder + '/' + str(itercount)):
+        img_depict = int(file[0])
         print([file], [img_depict])
 
-        img = Image.open(folder + '/' + str(iter) + '/' + file).convert('LA')
+        img = Image.open(folder + '/' + str(itercount) + '/' + file).convert('LA')
         img.save('greyscale.png')
 
         img_g = Image.open('greyscale.png', 'r')
@@ -20,21 +20,21 @@ def convert(folder, iter):
         pix_val_flat = np.array([], dtype='float')
 
         for i in pix_val:
-            pix_val_flat = np.append(pix_val_flat, float((i[0] / 255) * -1 + 1))
+            pix_val_flat = np.append(pix_val_flat, float(round((i[0] / 255) * -1 + 1)))
 
-        if (not os.path.isfile('./img_save_in_' + str(iter) + '.npy')) and (not os.path.isfile('./img_save_out_' + str(iter) + '.npy')):
+        if (not os.path.isfile('./img_save_in_' + str(itercount) + '.npy')) and (not os.path.isfile('./img_save_out_' + str(itercount) + '.npy')):
             inputs = np.array([pix_val_flat])
             outputs = np.array([[img_depict]])
 
         else:
-            inputs = np.load('./img_save_in_' + str(iter) + '.npy')
-            outputs = np.load('./img_save_out_' + str(iter) + '.npy')
+            inputs = np.load('./img_save_in_' + str(itercount) + '.npy')
+            outputs = np.load('./img_save_out_' + str(itercount) + '.npy')
             if not check(pix_val_flat.tolist(), inputs.tolist()):
                 inputs = np.append(inputs, [pix_val_flat], axis=0)
                 outputs = np.append(outputs, [[img_depict]], axis=0)
 
-        np.save('img_save_in_' + str(iter), inputs)
-        np.save('img_save_out_' + str(iter), outputs)
+        np.save('img_save_in_' + str(itercount), inputs)
+        np.save('img_save_out_' + str(itercount), outputs)
 
 
 def compress(folder, output):
