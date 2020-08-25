@@ -53,11 +53,11 @@ def train(number_of_training_iterations):
                     layer_weights_adjustment[len(layers) - i] = np.dot(layer_error_identity[len(layers) - i], np.dot(sigmoid_derivative(layer_outputs[len(layers)- i]), layer_outputs[len(layers) - i - 1].T))
                     layer_biases_adjustment[len(layers) - i] = np.dot(layer_error_identity[len(layers) - i], sigmoid_derivative(layer_outputs[len(layers) - i]))
                 elif i == len(layers) - 1:
-                    layer_weights_adjustment[len(layers) - i] = np.dot(layer_error_identity[len(layers) - i], np.dot(relu_derivative(layer_outputs[len(layers) - i]), np.array([training_set_inputs[input_set].tolist()])))
-                    layer_biases_adjustment[len(layers) - i] = np.dot(layer_error_identity[len(layers) - i], relu_derivative(layer_outputs[len(layers) - i]))
+                    layer_weights_adjustment[len(layers) - i] = np.dot(layer_error_identity[len(layers) - i], np.dot(sigmoid_derivative(layer_outputs[len(layers) - i]), np.array([training_set_inputs[input_set].tolist()]))) # relu
+                    layer_biases_adjustment[len(layers) - i] = np.dot(layer_error_identity[len(layers) - i], sigmoid_derivative(layer_outputs[len(layers) - i])) # relu
                 else:
-                    layer_weights_adjustment[len(layers) - i] = np.dot(layer_error_identity[len(layers) - i], np.dot(relu_derivative(layer_outputs[len(layers) - i]), layer_outputs[len(layers) - i - 1].T))
-                    layer_biases_adjustment[len(layers) - i] = np.dot(layer_error_identity[len(layers) - i], relu_derivative(layer_outputs[len(layers) - i]))
+                    layer_weights_adjustment[len(layers) - i] = np.dot(layer_error_identity[len(layers) - i], np.dot(sigmoid_derivative(layer_outputs[len(layers) - i]), layer_outputs[len(layers) - i - 1].T)) # relu
+                    layer_biases_adjustment[len(layers) - i] = np.dot(layer_error_identity[len(layers) - i], sigmoid_derivative(layer_outputs[len(layers) - i])) # relu
 
         for i in range(len(layers)):
             layer_weights[i + 1] += (layer_avg_adjustment[i + 1] * (1 / len(training_set_inputs)))
@@ -71,20 +71,20 @@ def train(number_of_training_iterations):
 
 def think(x, inputs):
     if x == 1:
-        output = relu(np.dot(layer_weights[1], inputs) + layer_biases[1])
+        output = sigmoid(np.dot(layer_weights[1], inputs) + layer_biases[1]) # relu
     elif x == len(layers):
         output = sigmoid(np.dot(layer_weights[x], layer_outputs[x - 1]) + layer_biases[x])
     else:
-        output = relu(np.dot(layer_weights[x], layer_outputs[x - 1]) + layer_biases[x])
+        output = sigmoid(np.dot(layer_weights[x], layer_outputs[x - 1]) + layer_biases[x])
     return output
 
 
 def simulate(input):
     for i in range(len(layers)):
-        layer_outputs[i + 1] = think(i + 1, input)
+        layer_outputs[i + 1] = think(i + 1, np.array([input.tolist()]).T)
 
     sim_confidence = np.amax(layer_outputs[len(layers)])
-    sim_output = output_possibilities[np.where(layer_outputs[len(layers)] == np.amax(layer_outputs[len(layers)]))][0]
+    sim_output = output_possibilities[np.where(layer_outputs[len(layers)] == np.amax(layer_outputs[len(layers)]))[0]]
 
     return sim_output, sim_confidence
 
@@ -109,7 +109,7 @@ if __name__ == '__main__':
         layer_weights[layer] = weight_init(layers[layer][0], layers[layer][1])
         layer_biases[layer] = bias_init(layers[layer][1])
 
-    train(10)  # TODO
+    train(1)  # TODO
 
     error_count = 0
     times_simulated = 0
