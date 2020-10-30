@@ -1,22 +1,19 @@
 import numpy as np
-from logic_simulation import logicsim_inputs, logicsim_outputs, logicsim_output_possibilities, init
-# from image_converter import imgconvert_inputs, imgconvert_outputs
-
-
-def weight_init(number_of_inputs_per_neuron, number_of_neurons):
-    return np.random.random((number_of_neurons, number_of_inputs_per_neuron))
-
-
-def bias_init(number_of_neurons):
-    return np.random.random((number_of_neurons, 1))
-
 
 def sigmoid(x):
-    return 1 / (1 + np.exp(-x))
+    return 1.0 / (1.0 + np.exp(-x))
 
 
 def sigmoid_derivative(x):
     return x * (1 - x)
+
+
+def tanh(x):
+    return np.tanh(x)
+
+
+def tanh_derivative(x):
+    return 1.0 - np.tanh(x) ** 2
 
 
 def relu(x):
@@ -27,101 +24,105 @@ def relu_derivative(x):
     return np.piecewise(x, [x < 0, x >= 0], [0, 1])
 
 
-def train(number_of_training_iterations):
-    for iteration in range(number_of_training_iterations):
-        for i in range(len(layers)):
-            layer_avg_adjustment[i + 1] = np.zeros(np.shape(layer_weights[i + 1]))
+class Layer:
+    def __init__(self, dim1, dim2, type, type_derivative, isOutputLayer=False):
+        self.weights = np.random.random((dim1, dim2))
+        self.biases = np.random.random((dim1, 1))
+        self.raw_outputs = None
+        self.outputs = None
+        self.adjustment = None
+        self.type = type
+        self.type_derivative = type_derivative
+        self.isOutputLayer = isOutputLayer
 
-        for input_set in range(len(training_set_inputs)):
-            for i in range(len(layers)):
-                layer_outputs[i + 1] = think(i + 1, np.array([training_set_inputs[input_set].tolist()]).T)
+    def forward(self, x):
+        self.raw_outputs = np.dot(self.weights, x) + self.biases
+        self.outputs = self.type(self.raw_outputs)
 
-            for i in range(len(layers)):
-                if i == 0:
-                    layer_error[len(layers)] = np.zeros((len(layer_outputs[len(layers)]), 1))
-                    correct_index = np.where(output_possibilities == training_set_outputs[input_set][0])[0][0]
-                    for x in range(len(layer_outputs[len(layers)])):
-                        layer_error[len(layers)][x, 0] = 0 - layer_outputs[len(layers)][x, 0]
-                    layer_error[len(layers)][correct_index, 0] = 1 - layer_outputs[len(layers)][correct_index, 0]
-                else:
-                    layer_error[len(layers) - i] = np.dot(np.ones((1, len(layer_outputs[len(layers) - i + 1]))), layer_weights_adjustment[len(layers) - i + 1]).T
+    def backward(self, y, next_layer):
+        if self.isOutputLayer:
+            self.adjustment = (self.outputs - y) * self.type_derivative(self.raw_outputs)
+        else:
+            self.adjustment = np.dot(next_layer.weights.T, next_layer.adjustment) * self.type_derivative(self.raw_outputs)
 
-                layer_error_identity[len(layers) - i] = np.zeros((len(layer_error[len(layers) - i]), len(layer_error[len(layers) - i])))
-                for x in range(len(layer_outputs[len(layers) - i])):
-                    layer_error_identity[len(layers) - i][x][x] = layer_error[len(layers) - i][x][0]
-                if i == 0:
-                    layer_weights_adjustment[len(layers) - i] = np.dot(layer_error_identity[len(layers) - i], np.dot(sigmoid_derivative(layer_outputs[len(layers)- i]), layer_outputs[len(layers) - i - 1].T))
-                    layer_biases_adjustment[len(layers) - i] = np.dot(layer_error_identity[len(layers) - i], sigmoid_derivative(layer_outputs[len(layers) - i]))
-                elif i == len(layers) - 1:
-                    layer_weights_adjustment[len(layers) - i] = np.dot(layer_error_identity[len(layers) - i], np.dot(sigmoid_derivative(layer_outputs[len(layers) - i]), np.array([training_set_inputs[input_set].tolist()]))) # relu
-                    layer_biases_adjustment[len(layers) - i] = np.dot(layer_error_identity[len(layers) - i], sigmoid_derivative(layer_outputs[len(layers) - i])) # relu
-                else:
-                    layer_weights_adjustment[len(layers) - i] = np.dot(layer_error_identity[len(layers) - i], np.dot(sigmoid_derivative(layer_outputs[len(layers) - i]), layer_outputs[len(layers) - i - 1].T)) # relu
-                    layer_biases_adjustment[len(layers) - i] = np.dot(layer_error_identity[len(layers) - i], sigmoid_derivative(layer_outputs[len(layers) - i])) # relu
-
-        for i in range(len(layers)):
-            layer_weights[i + 1] += (layer_avg_adjustment[i + 1] * (1 / len(training_set_inputs)))
-            layer_biases[i + 1] += layer_biases_adjustment[i + 1]
-
-        if iteration % 1 == 0:
-            print('Waiting...  (' + str(iteration + 1) + '/' + str(number_of_training_iterations) + ')')
-        if iteration + 1 == number_of_training_iterations:
-            print('Simulating tests...')
+    def update_weights(self, learning_rate, x):
+        self.weights = self.weights - (learning_rate * np.dot(self.adjustment, x.T))
+        self.biases = self.biases - (learning_rate * self.adjustment)
 
 
-def think(x, inputs):
-    if x == 1:
-        output = sigmoid(np.dot(layer_weights[1], inputs) + layer_biases[1]) # relu
-    elif x == len(layers):
-        output = sigmoid(np.dot(layer_weights[x], layer_outputs[x - 1]) + layer_biases[x])
-    else:
-        output = sigmoid(np.dot(layer_weights[x], layer_outputs[x - 1]) + layer_biases[x])
-    return output
+class NeuralNetwork:
+    def __init__(self, nodes, type='relu'):
+        if type == 'sigmoid':
+            self.type = sigmoid
+            self.type_derivative = sigmoid_derivative
+        elif type == 'relu':
+            self.type = relu
+            self.type_derivative = relu_derivative
+        elif type == 'tanh':
+            self.type = tanh
+            self.type_derivative = tanh_derivative
 
+        self.layers = []
+        for i in range(1, len(nodes) - 1):
+            self.layers.append(Layer(nodes[i], nodes[i - 1], self.type, self.type_derivative))
+        self.layers.append(Layer(nodes[len(nodes) - 1], nodes[len(nodes) - 2], self.type, self.type_derivative, True))
 
-def simulate(input):
-    for i in range(len(layers)):
-        layer_outputs[i + 1] = think(i + 1, np.array([input.tolist()]).T)
+    def train(self, inputs, outputs, learning_rate=0.1, epochs=10000, debug=False, w=False, b=False, r=False, o=False, a=False):
+        print('Training...')
+        for iteration1 in range(int(np.floor(np.sqrt(epochs)))):
+            for set_number in range(len(inputs)):
+                for iteration2 in range(int(np.floor(np.sqrt(epochs)))):
 
-    sim_confidence = np.amax(layer_outputs[len(layers)])
-    sim_output = output_possibilities[np.where(layer_outputs[len(layers)] == np.amax(layer_outputs[len(layers)]))[0]]
+                    self.layers[0].forward(np.array([inputs[set_number]]).T)
+                    for i in range(len(self.layers) - 1):
+                        self.layers[i + 1].forward(self.layers[i].outputs)
 
-    return sim_output, sim_confidence
+                    self.layers[-1].backward(np.array([outputs[set_number]]).T, None)
+                    for i in range(len(self.layers) - 1):
+                        self.layers[-2 - i].backward(None, self.layers[-1 - i])
+
+                    if debug:
+                        for i in range(len(self.layers)):
+                            if w or (not b and not r and not o and not a):
+                                print('L' + str(i + 1) + '.weights\n', self.layers[i].weights, '\n')
+                            if b or (not w and not r and not o and not a):
+                                print('L' + str(i + 1) + '.biases\n', self.layers[i].biases, '\n')
+                            if r or (not w and not b and not o and not a):
+                                print('L' + str(i + 1) + '.raw_outputs\n', self.layers[i].raw_outputs, '\n')
+                            if o or (not w and not b and not r and not a):
+                                print('L' + str(i + 1) + '.outputs\n', self.layers[i].outputs, '\n')
+                            if a or (not w and not b and not r and not o):
+                                print('L' + str(i + 1) + '.adjustment\n', self.layers[i].adjustment, '\n')
+
+                    self.layers[0].update_weights(learning_rate, np.array([inputs[set_number]]).T)
+                    for i in range(len(self.layers) - 1):
+                        self.layers[i + 1].update_weights(learning_rate, self.layers[i].outputs)
+
+        print('Training complete.')
+
+    def think(self, inputs):
+        self.layers[0].forward(np.array([inputs]).T)
+        for i in range(len(self.layers) - 1):
+            self.layers[i + 1].forward(self.layers[i].outputs)
+
+        return self.layers[-1].outputs
+
+    def test(self, inputs, outputs):
+        correct = 0
+        for set_number in range(len(inputs)):
+            thought = self.think(inputs[set_number])
+            if np.array_equal(np.where(thought == np.amax(thought), 1, 0), np.array([outputs[set_number]]).T):
+                correct += 1
+                print('Correct ', outputs[set_number], np.amax(thought))
+            else:
+                print('Wrong   ', np.where(thought == np.amax(thought), 1, 0).T[0], '', outputs[set_number], np.amax(thought))
+        print('\n' + str(correct) + '/' + str(len(inputs)) + '  =  ' + str(correct / len(inputs)))
 
 
 if __name__ == '__main__':
-    output_possibilities = np.array(logicsim_output_possibilities)  # TODO
+    a = NeuralNetwork([inputs, 10, 9, 2], type='tanh')
+    a.train(full_in, full_out, learning_rate=0.3, epochs=10000)
 
-    training_set_inputs = logicsim_inputs[np.arange(len(logicsim_inputs)) < (len(logicsim_inputs) * 0.9)]  # TODO
-    training_set_outputs = logicsim_outputs[np.arange(len(logicsim_outputs)) < (len(logicsim_outputs) * 0.9)]  # TODO
-
-    layers = {1: [init[2], 16], 2: [16, 16], 3: [16, len(output_possibilities.tolist())]}  # TODO
-    layer_weights = {}
-    layer_biases = {}
-    layer_outputs = {}
-    layer_error = {}
-    layer_error_identity = {}
-    layer_weights_adjustment = {}
-    layer_biases_adjustment = {}
-    layer_avg_adjustment = {}
-
-    for layer in layers:
-        layer_weights[layer] = weight_init(layers[layer][0], layers[layer][1])
-        layer_biases[layer] = bias_init(layers[layer][1])
-
-    train(1)  # TODO
-
-    error_count = 0
-    times_simulated = 0
-
-    for i in logicsim_inputs:
-        if not any((training_set_inputs[:] == i).all(1)):
-            times_simulated += 1
-            sim_out, sim_conf = simulate(i)
-            if sim_out != logicsim_outputs[logicsim_inputs.tolist().index(i.tolist())]:
-                print(sim_out, sim_conf, logicsim_outputs[logicsim_inputs.tolist().index(i.tolist())])
-                error_count += 1
-                print('Error count: ' + str(error_count))
-            else:
-                print('Success! ' + str(sim_out) + '  ' + str(sim_conf))
-    print('Errors: ' + str(error_count) + '/' + str(times_simulated) + '  |  Accuracy: ' + '{:.2f}'.format(1 - (error_count / times_simulated)))
+    test_in = full_in
+    test_out = full_out
+    a.test(test_in, test_out)
